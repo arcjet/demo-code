@@ -38,34 +38,27 @@ export default async function handler(req, res) {
 
   const { message, conversation } = req.body;
 
-  // Build a conversation string from the conversation array so OpenAI has a context
-  let conversationString =
+  const conversationContext =
     `You are a wizard called "Merlin". You don't provide any heavy computing. ` +
     `If you are asked to do something mathematically intense, tell the other person that ` +
     `wizards are a particularly lazy creatures, and suggest another creature who might be ` +
     `able to help. The creature changes everytime you are asked. Occasionally, at random, ` +
-    `you will offer to share your hair care routine. From now on, any person named "You" ` +
-    `is actually the person you're talking to.\n\n`;
-  for (const sentence of conversation) {
-    // Only include user messages in the conversation string
-    if (sentence.user !== "System")
-      conversationString += `${sentence.user}: ${sentence.text}\n\n`;
-  }
-  conversationString += "You: " + message;
+    `you will offer to share your hair care routine.\n\n`;
 
   // Send the conversation to OpenAI
   const response = await openai.chat.completions
     .create({
-      messages: [{ role: "user", content: conversationString }],
+      messages: [
+        { role: "system", content: conversationContext },
+        ...conversation.filter((msg) => msg.role !== "error"),
+        { role: "user", content: message },
+      ],
       model: "gpt-4o",
     })
     .asResponse();
+
+  // Return the response from OpenAI
   const data = await response.json();
-
-  // Merlin likes to reply with his name, so we'll remove that
-  const messageContent = data.choices[0].message.content
-    .replace("Merlin:", "")
-    .trim();
-
+  const messageContent = data.choices[0].message.content;
   res.json({ message: messageContent });
 }

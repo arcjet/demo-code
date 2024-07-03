@@ -22,7 +22,7 @@ This monorepo contains a variety of demo code bases used in our [YouTube Videos]
 
 ## Demos
 
-- [Merlin Bot](tree/main/merlin-bot)
+- [Merlin Bot](https://github.com/arcjet/demo-code/tree/main/merlin-bot)
   - Video: [Securing your Next.js Web Application with Arcjet's Rate Limiting and Bot Protection](https://youtu.be/19cx9y8PUqs)
 
 ## Need Help?

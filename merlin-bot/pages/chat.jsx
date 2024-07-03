@@ -5,8 +5,8 @@ export default function Chat() {
   const [messages, setMessages] = useState([
     {
       id: uuidv4(),
-      user: "Merlin",
-      text: "Welcome to MerlinBot! Ask me anything.",
+      role: "system",
+      content: "Welcome to MerlinBot! Ask me anything.",
     },
   ]);
   const [thinking, setThinking] = useState(false);
@@ -16,7 +16,7 @@ export default function Chat() {
   const handleSendMessage = async (message) => {
     setMessages((currentMessages) => [
       ...currentMessages,
-      { id: uuidv4(), user: "You", text: message },
+      { id: uuidv4(), role: "user", content: message },
     ]);
     setThinking(true);
 
@@ -31,13 +31,13 @@ export default function Chat() {
       setThinking(false);
       setMessages((currentMessages) => [
         ...currentMessages,
-        { id: uuidv4(), user: "System", text: data.error },
+        { id: uuidv4(), role: "error", content: data.error },
       ]);
     } else {
       setThinking(false);
       setMessages((currentMessages) => [
         ...currentMessages,
-        { id: uuidv4(), user: "Merlin", text: data.message },
+        { id: uuidv4(), role: "system", content: data.message },
       ]);
     }
   };
@@ -76,14 +76,20 @@ export default function Chat() {
           <div
             key={message.id}
             className={`p-2 rounded-lg ${
-              message.user === "You"
+              message.role === "user"
                 ? "bg-blue-500 text-white self-end"
                 : "bg-gray-300 self-start"
             }`}
           >
-            <span className="font-bold pr-2">{message.user}</span>
+            <span className="font-bold pr-2">
+              {message.role === "user"
+                ? "You"
+                : message.role === "system"
+                ? "Merlin"
+                : "System"}
+            </span>
             <pre style={{ fontFamily: "inherit", whiteSpace: "pre-wrap" }}>
-              {message.text}
+              {message.content}
             </pre>
           </div>
         ))}
