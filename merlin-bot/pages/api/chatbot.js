@@ -1,5 +1,6 @@
 import { OpenAI } from "openai";
 import arcjet, { detectBot, tokenBucket } from "@arcjet/next";
+import { promptTokensEstimate } from "openai-chat-tokens";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -8,9 +9,9 @@ const aj = arcjet({
   rules: [
     tokenBucket({
       mode: "LIVE",
-      capacity: 10,
+      capacity: 1000,
       interval: 60,
-      refillRate: 10,
+      refillRate: 1000,
     }),
     detectBot({
       mode: "LIVE",
@@ -20,7 +21,24 @@ const aj = arcjet({
 });
 
 export default async function handler(req, res) {
-  const decision = await aj.protect(req, { requested: 1 });
+  const { message, conversation } = req.body;
+
+  const conversationContext =
+    `You are a wizard called "Merlin". You don't provide any heavy computing. ` +
+    `If you are asked to do something mathematically intense, tell the other person that ` +
+    `wizards are a particularly lazy creatures, and suggest another creature who might be ` +
+    `able to help. The creature changes everytime you are asked. Occasionally, at random, ` +
+    `you will offer to share your hair care routine.\n\n`;
+
+  const messages = [
+    { role: "system", content: conversationContext },
+    ...conversation.filter((msg) => msg.role !== "error"),
+    { role: "user", content: message },
+  ];
+
+  const estimate = promptTokensEstimate({ messages });
+
+  const decision = await aj.protect(req, { requested: estimate });
 
   if (decision.isDenied()) {
     if (decision.reason.isRateLimit()) {
@@ -36,23 +54,10 @@ export default async function handler(req, res) {
     }
   }
 
-  const { message, conversation } = req.body;
-
-  const conversationContext =
-    `You are a wizard called "Merlin". You don't provide any heavy computing. ` +
-    `If you are asked to do something mathematically intense, tell the other person that ` +
-    `wizards are a particularly lazy creatures, and suggest another creature who might be ` +
-    `able to help. The creature changes everytime you are asked. Occasionally, at random, ` +
-    `you will offer to share your hair care routine.\n\n`;
-
   // Send the conversation to OpenAI
   const response = await openai.chat.completions
     .create({
-      messages: [
-        { role: "system", content: conversationContext },
-        ...conversation.filter((msg) => msg.role !== "error"),
-        { role: "user", content: message },
-      ],
+      messages,
       model: "gpt-4o",
     })
     .asResponse();
